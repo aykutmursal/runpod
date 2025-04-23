@@ -1,0 +1,11 @@
+# Diffusion altyapısı
+diffusers>=0.32.1
+transformers>=4.47.1
+einops>=0.7.0
+accelerate>=1.2.1
+
+# HiDream pipeline
+hi-diffusers
+
+# Görüntü I/O
+Pillow>=9.0.0
