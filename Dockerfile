@@ -10,21 +10,18 @@ ENV PYTHONUNBUFFERED=1
 # Speed up some cmake builds
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 
-# Install Python 3.12 (via deadsnakes PPA), pip and other tools
-RUN apt-get update && apt-get install -y software-properties-common \
-  && add-apt-repository ppa:deadsnakes/ppa \
-  && apt-get update \
-  && apt-get install -y \
-      python3.12 \
-      python3.12-dev \
+# Install Python 3, pip, distutils, git, wget, etc.
+RUN apt-get update && \
+    apt-get install -y \
+      python3 \
       python3-pip \
-       git \
-       wget \
-       libgl1 \
-  && ln -sf /usr/bin/python3.12 /usr/bin/python \
-  && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
-  && rm -rf /var/lib/apt/lists/*
-
+      python3-distutils \
+      git \
+      wget \
+      libgl1 && \
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/python3 /usr/bin/python3 && \
+    rm -rf /var/lib/apt/lists/*
 
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
