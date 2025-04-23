@@ -15,10 +15,9 @@ RUN apt-get update && apt-get install -y software-properties-common \
   && add-apt-repository ppa:deadsnakes/ppa \
   && apt-get update \
   && apt-get install -y \
-       python3.12 \
-       python3.12-dev \
-       python3.12-distutils \
-       python3-pip \
+      python3.12 \
+      python3.12-dev \
+      python3-pip \
        git \
        wget \
        libgl1 \
