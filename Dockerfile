@@ -1,21 +1,100 @@
-# Base image: RunPod'un PyTorch+CUDA şablonu
-FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
+# Stage 1: Base image with common dependencies
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04 as base
 
-ENV PYTHONUNBUFFERED=1
-WORKDIR /app
+# Prevents prompts from packages asking for user input during installation
+ENV DEBIAN_FRONTEND=noninteractive
+# Prefer binary wheels over source distributions for faster pip installations
+ENV PIP_PREFER_BINARY=1
+# Ensures output from python is printed immediately to the terminal without buffering
+ENV PYTHONUNBUFFERED=1 
+# Speed up some cmake builds
+ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 
-# Temel gereksinimleri yükleyin
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir diffusers>=0.32.1 transformers>=4.47.1 einops>=0.8.1 accelerate>=1.6.0 Pillow>=9.0.0
+# Install Python 3.12, git and other necessary tools
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y \
+    python3.12 \
+    python3.12-dev \
+    python3.12-distutils \
+    python3-pip \
+    git \
+    wget \
+    libgl1 \
+    && ln -sf /usr/bin/python3.12 /usr/bin/python \
+    && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
 
-# HiDream-I1 reposunu klonlayın ve kurun
-RUN git clone https://github.com/HiDream-ai/HiDream-I1.git /app/HiDream-I1 && \
-    cd /app/HiDream-I1 && \
-    pip install -e .
+# Clean up to reduce image size
+RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Uygulama kodunu kopyalayın
-COPY inference.py /app/
+# Install comfy-cli
+RUN pip install comfy-cli
 
-# Çalıştırma noktası
-ENTRYPOINT ["python3", "inference.py"]
+# Install ComfyUI (latest version)
+RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 12.4 --nvidia
+
+# Change working directory to ComfyUI
+WORKDIR /comfyui
+
+# Install runpod
+RUN pip install runpod requests
+
+# Support for the network volume
+ADD src/extra_model_paths.yaml ./
+
+# Go back to the root
+WORKDIR /
+
+# Add scripts
+ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py test_input.json ./
+RUN chmod +x /start.sh /restore_snapshot.sh
+
+# Optionally copy the snapshot file
+ADD *snapshot*.json /
+
+# Restore the snapshot to install custom nodes
+RUN /restore_snapshot.sh
+
+# Start container
+CMD ["/start.sh"]
+
+# Stage 2: Download models
+FROM base as downloader
+
+# Change working directory to ComfyUI
+WORKDIR /comfyui
+
+# Create necessary directories
+RUN mkdir -p models/diffusion_models models/text_encoders models/vae
+
+# Download hidream_i1_dev_bf16 model
+RUN wget -O models/diffusion_models/hidream_i1_dev_bf16.safetensors \
+  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_bf16.safetensors?download=true"
+
+# Download common model files
+RUN wget -O models/text_encoders/clip_l_hidream.safetensors \
+  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_l_hidream.safetensors"
+
+RUN wget -O models/text_encoders/clip_g_hidream.safetensors \
+  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors"
+
+RUN wget -O models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors \
+  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors"
+
+RUN wget -O models/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors \
+  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors"
+
+RUN wget -O models/vae/ae.safetensors \
+  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
+
+# Stage 3: Final image
+FROM base as final
+
+# Copy models from stage 2 to the final image
+COPY --from=downloader /comfyui/models /comfyui/models
+
+# Start container
+CMD ["/start.sh"]
