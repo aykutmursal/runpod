@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-runtime-debian11-slim
+FROM nvidia/cuda:12.4.1-runtime-debian11
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1
