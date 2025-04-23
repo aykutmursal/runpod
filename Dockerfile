@@ -1,22 +1,15 @@
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+# Base image: RunPod'un PyTorch+CUDA şablonu (torch zaten kurulu)
+FROM runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONUNBUFFERED=1
-
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y python3 python3-pip git && \
-    rm -rf /var/lib/apt/lists/*
+# 1) Yalnızca ihtiyaç duyduğunuz kütüphaneleri yükleyin
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip3 install --no-cache-dir --upgrade pip wheel
+# 2) Uygulama kodunu kopyalayın
+COPY inference.py /app/
 
-COPY requirements.txt /app/requirements.txt
-RUN pip3 install --no-cache-dir \
-    --index-url https://download.pytorch.org/whl/cu124 \
-    torch>=2.5.1 torchvision>=0.20.1 && \
-    pip3 install --no-cache-dir -r /app/requirements.txt
-
-COPY inference.py /app/inference.py
-
-ENTRYPOINT ["python3", "/app/inference.py"]
+# 3) Çalıştırma noktası
+ENTRYPOINT ["python3", "inference.py"]
