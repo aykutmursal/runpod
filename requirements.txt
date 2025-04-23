@@ -1,11 +1,11 @@
 # Diffusion altyapısı
 diffusers>=0.32.1
 transformers>=4.47.1
-einops>=0.7.0
-accelerate>=1.2.1
+einops>=0.8.1
+accelerate>=1.6.0
 
-# HiDream pipeline
-hi-diffusers
+# HiDream pipeline (GitHub’dan kurulacak)
+git+https://github.com/HiDream-ai/hi-diffusers.git@main#egg=hi_diffusers
 
 # Görüntü I/O
 Pillow>=9.0.0
