@@ -38,6 +38,7 @@ jobs:
         # Clean Docker images and build cache
         sudo docker image prune --all --force
         sudo docker builder prune --all --force
+        sudo docker system prune --all --force
         
         # Clean package managers and temporary files
         sudo apt-get clean
@@ -62,7 +63,9 @@ jobs:
         python-version: '3.10'
     
     - name: Install dependencies
-      run: python -m pip install -r requirements.txt
+      run: |
+        echo "Installing Python dependencies..."
+        python -m pip install -r requirements.txt
     
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -80,52 +83,52 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '16'
-        cache: 'npm'
+    
+    # =============  MANUAL VERSION SETTING  =============
+    # Since semantic-release is having issues, let's just set a version manually
+    - name: Set release version
+      id: set_version
+      run: |
+        # Get current date in YYYY.MM.DD format
+        CURRENT_DATE=$(date +'%Y.%m.%d')
+        # Append build number for uniqueness
+        VERSION="${CURRENT_DATE}.${GITHUB_RUN_NUMBER}"
+        echo "Setting release version to: $VERSION"
+        echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+        echo "release-version=$VERSION" >> $GITHUB_OUTPUT
     
     # README varsa ToC güncelle; yoksa atla
     - name: Update the ToC in the README.md
       if: hashFiles('README.md') != ''
       run: |
-        npm install -g markdown-toc
-        markdown-toc README.md -i
-    
-    # =============  SEMANTIC-RELEASE (yalnız push) =============
-    - name: Install semantic-release packages
-      if: github.event_name == 'push'
-      run: |
-        npm install -g semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/exec
-    
-    - name: Run Semantic Release
-      if: github.event_name == 'push'
-      id: semantic_release
-      run: |
-        RELEASE_VERSION=$(npx semantic-release --dry-run | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || echo "1.0.0")
-        echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
-        echo "release-version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
-        
-        # Only run the actual release if we're not in dry-run
-        if [[ "${{ github.event_name }}" == "push" ]]; then
-          npx semantic-release
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        echo "Updating README.md table of contents..."
+        npm install markdown-toc
+        npx markdown-toc README.md -i || echo "Table of contents update failed, but continuing..."
     
     # =============  ENV VARS =============
     - name: Set environment variables
-      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       run: |
+        echo "Setting environment variables..."
         echo "DOCKERHUB_REPO=${{ vars.DOCKERHUB_REPO || 'aykutmursalo' }}" >> $GITHUB_ENV
         echo "DOCKERHUB_IMG=${{ vars.DOCKERHUB_IMG || 'hidream-inference-fast-fp8' }}" >> $GITHUB_ENV
         echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
-        echo "RELEASE_VERSION=${RELEASE_VERSION:-1.0.0}" >> $GITHUB_ENV
+        # Version already set in previous step
     
     # Check disk space before build
     - name: Check disk space before build
       run: df -h
+    
+    # =============  DEBUG DOCKER CONFIGURATION  =============
+    - name: Debug Docker configuration
+      run: |
+        docker info
+        docker buildx ls
+        echo "Docker Hub repo: ${{ env.DOCKERHUB_REPO }}"
+        echo "Docker Hub image: ${{ env.DOCKERHUB_IMG }}"
+        echo "Release version: ${{ env.RELEASE_VERSION }}"
       
     # =============  BUILD & PUSH  =============
     - name: Build and push the fast-fp8 image
-      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: docker/bake-action@v2
       with:
         push: true
