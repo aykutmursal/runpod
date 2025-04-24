@@ -89,12 +89,11 @@ jobs:
 
     # =============  BUILD & PUSH  =============
     - name: Build and push the fast-fp8 image
-       if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: docker/bake-action@v2
       with:
         push: true
-        # Sadece fast-fp8 hedefini derle
-        targets: "fast-fp8"
+        targets: "fast-fp8"                    # sadece fast-fp8
         set: |
           # ---- tag ----
           fast-fp8.tags=${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}:${{ env.RELEASE_VERSION }}-fast-fp8
