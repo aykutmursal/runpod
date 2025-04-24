@@ -1,75 +1,71 @@
 variable "DOCKERHUB_REPO" {
-  default = "timpietruskyblibla"
+  default = "aykutmursalo"
 }
 
 variable "DOCKERHUB_IMG" {
-  default = "runpod-worker-comfy"
+  default = "hidream-inference"
 }
 
 variable "RELEASE_VERSION" {
   default = "latest"
 }
 
-variable "HUGGINGFACE_ACCESS_TOKEN" {
-  default = ""
-}
-
 group "default" {
-  targets = ["base", "sdxl", "sd3", "flux1-schnell", "flux1-dev"]
+  targets = ["base", "fast-fp8", "fast-bf16", "dev-fp8", "dev-bf16"]
 }
 
 target "base" {
-  context = "."
+  context    = "."
   dockerfile = "Dockerfile"
-  target = "base"
-  platforms = ["linux/amd64"]
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-base"]
+  target     = "base"
+  platforms  = ["linux/amd64"]
+  tags       = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-base"]
 }
 
-target "sdxl" {
-  context = "."
+# fast-fp8 modeli
+target "fast-fp8" {
+  context    = "."
   dockerfile = "Dockerfile"
-  target = "final"
+  target     = "final"
+  inherits   = ["base"]
   args = {
-    MODEL_TYPE = "sdxl"
+    MODEL_TYPE = "fast-fp8"
   }
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-sdxl"]
-  inherits = ["base"]
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-fast-fp8"]
 }
 
-target "sd3" {
-  context = "."
+# fast-bf16 modeli
+target "fast-bf16" {
+  context    = "."
   dockerfile = "Dockerfile"
-  target = "final"
+  target     = "final"
+  inherits   = ["base"]
   args = {
-    MODEL_TYPE = "sd3"
-    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
+    MODEL_TYPE = "fast-bf16"
   }
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-sd3"]
-  inherits = ["base"]
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-fast-bf16"]
 }
 
-target "flux1-schnell" {
-  context = "."
+# dev-fp8 modeli
+target "dev-fp8" {
+  context    = "."
   dockerfile = "Dockerfile"
-  target = "final"
+  target     = "final"
+  inherits   = ["base"]
   args = {
-    MODEL_TYPE = "flux1-schnell"
-    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
+    MODEL_TYPE = "dev-fp8"
   }
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux1-schnell"]
-  inherits = ["base"]
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-dev-fp8"]
 }
 
-target "flux1-dev" {
-  context = "."
+# dev-bf16 modeli
+target "dev-bf16" {
+  context    = "."
   dockerfile = "Dockerfile"
-  target = "final"
+  target     = "final"
+  inherits   = ["base"]
   args = {
-    MODEL_TYPE = "flux1-dev"
-    HUGGINGFACE_ACCESS_TOKEN = "${HUGGINGFACE_ACCESS_TOKEN}"
+    MODEL_TYPE = "dev-bf16"
   }
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-flux1-dev"]
-  inherits = ["base"]
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-dev-bf16"]
 }
-

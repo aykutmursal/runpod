@@ -1,96 +1,76 @@
 # Stage 1: Base image with common dependencies
 FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04 as base
 
-# Prevents prompts from packages asking for user input during installation
+# Prevent prompts during apt installs
 ENV DEBIAN_FRONTEND=noninteractive
-# Prefer binary wheels over source distributions for faster pip installations
+# Prefer binary wheels
 ENV PIP_PREFER_BINARY=1
-# Ensures output from python is printed immediately to the terminal without buffering
-ENV PYTHONUNBUFFERED=1 
+# Disable Python output buffering
+ENV PYTHONUNBUFFERED=1
 # Speed up some cmake builds
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 
-# Install Python 3, pip, distutils, git, wget, etc.
+# Install system dependencies
 RUN apt-get update && \
     apt-get install -y \
-      python3 \
-      python3-pip \
-      python3-distutils \
-      git \
-      wget \
-      libgl1 && \
-    ln -sf /usr/bin/python3 /usr/bin/python && \
-    ln -sf /usr/bin/python3 /usr/bin/python3 && \
-    rm -rf /var/lib/apt/lists/*
+        python3 python3-pip python3-distutils python3-dev \
+        build-essential git wget \
+        libgl1 libglib2.0-0 libsm6 libxrender1 \
+        google-perftools \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && ln -sf /usr/bin/pip3 /usr/bin/pip \
+    && rm -rf /var/lib/apt/lists/*
 
-# Clean up to reduce image size
-RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+# Install CLI and ComfyUI
+RUN python3 -m pip install --no-cache-dir comfy-cli==1.3.8 runpod requests && \
+    /usr/bin/yes | comfy --workspace /comfyui install \
+          --cuda-version 12.4 \
+          --nvidia
 
-# Install comfy-cli
-RUN pip install comfy-cli
-
-# Install ComfyUI (latest version)
-RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 12.4 --nvidia
-
-# Change working directory to ComfyUI
-WORKDIR /comfyui
-
-# Install runpod
-RUN pip install runpod requests
-
-# Support for the network volume
+# Copy helper configs and scripts
 ADD src/extra_model_paths.yaml ./
-
-# Go back to the root
 WORKDIR /
-
-# Add scripts
 ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py test_input.json ./
 RUN chmod +x /start.sh /restore_snapshot.sh
-
-# Optionally copy the snapshot file
 ADD *snapshot*.json /
-
-# Restore the snapshot to install custom nodes
 RUN /restore_snapshot.sh
 
-# Start container
+# Default command
 CMD ["/start.sh"]
 
-# Stage 2: Download models
+# Stage 2: Download models (select via MODEL_TYPE)
 FROM base as downloader
 
-# Change working directory to ComfyUI
+ARG MODEL_TYPE
 WORKDIR /comfyui
-
-# Create necessary directories
-RUN mkdir -p models/diffusion_models models/text_encoders models/vae
-
-# Download hidream_i1_dev_bf16 model
-RUN wget -O models/diffusion_models/hidream_i1_dev_bf16.safetensors \
-  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_bf16.safetensors?download=true"
-
-# Download common model files
-RUN wget -O models/text_encoders/clip_l_hidream.safetensors \
-  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_l_hidream.safetensors"
-
-RUN wget -O models/text_encoders/clip_g_hidream.safetensors \
-  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors"
-
-RUN wget -O models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors \
-  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors"
-
-RUN wget -O models/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors \
-  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors"
-
-RUN wget -O models/vae/ae.safetensors \
-  "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
+RUN mkdir -p models/diffusion_models models/text_encoders models/vae && \
+    if [ "$MODEL_TYPE" = "fast-fp8" ]; then \
+      wget -O models/diffusion_models/hidream_i1_fast_fp8.safetensors \
+        "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_fast_fp8.safetensors"; \
+    elif [ "$MODEL_TYPE" = "fast-bf16" ]; then \
+      wget -O models/diffusion_models/hidream_i1_fast_bf16.safetensors \
+        "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_fast_bf16.safetensors"; \
+    elif [ "$MODEL_TYPE" = "dev-fp8" ]; then \
+      wget -O models/diffusion_models/hidream_i1_dev_fp8.safetensors \
+        "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_fp8.safetensors"; \
+    elif [ "$MODEL_TYPE" = "dev-bf16" ]; then \
+      wget -O models/diffusion_models/hidream_i1_dev_bf16.safetensors \
+        "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_bf16.safetensors"; \
+    else \
+      echo "Unknown MODEL_TYPE: $MODEL_TYPE" && exit 1; \
+    fi && \
+    wget -O models/text_encoders/clip_l_hidream.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_l_hidream.safetensors" && \
+    wget -O models/text_encoders/clip_g_hidream.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors" && \
+    wget -O models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors" && \
+    wget -O models/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors" && \
+    wget -O models/vae/ae.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
 
 # Stage 3: Final image
 FROM base as final
-
-# Copy models from stage 2 to the final image
 COPY --from=downloader /comfyui/models /comfyui/models
-
-# Start container
 CMD ["/start.sh"]
