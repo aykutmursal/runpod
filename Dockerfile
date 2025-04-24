@@ -38,7 +38,8 @@ RUN --mount=type=cache,target=/tmp/wget-cache \
       "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
 
 # ---------- Environment var for runtime model selection ----------
-ENV MODEL_TYPE=fast-fp8          # build-time vars; run-time override OK
+ENV MODEL_TYPE=fast-fp8
+# build-time default; can be overridden at runtime
 
 # ---------- Final image ----------
 FROM base AS final
