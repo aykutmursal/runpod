@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/aykutmursal/hidream-inference-fast-fp8/compare/1.1.0...1.1.1) (2025-04-24)
+
+
+### Bug Fixes
+
+* **dockerfile:** move inline comments to own lines ([8c86946](https://github.com/aykutmursal/hidream-inference-fast-fp8/commit/8c86946ce55617474240e267af1c4d5be9def87c))
+
 # [1.1.0](https://github.com/aykutmursal/hidream-inference-fast-fp8/compare/1.0.0...1.1.0) (2025-04-24)
 
 
