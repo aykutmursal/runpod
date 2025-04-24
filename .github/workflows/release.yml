@@ -59,12 +59,12 @@ jobs:
       with:
         node-version: '16'
 
-    # README varsa TOC güncelle; yoksa atla
+    # README varsa ToC güncelle; yoksa atla
     - name: Update the ToC in the README.md
       if: hashFiles('README.md') != ''
       run: npx markdown-toc README.md -i
 
-    # =============  SEMANTIC-RELEASE  (yalnız push) =============
+    # =============  SEMANTIC-RELEASE (yalnız push) =============
     - name: Semantic release
       if: github.event_name == 'push'
       uses: codfish/semantic-release-action@v3
@@ -77,7 +77,6 @@ jobs:
 
     # =============  ENV VARS =============
     - name: Set environment variables
-      # Her push veya workflow_dispatch’ta çalış
       if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       run: |
         echo "DOCKERHUB_REPO=${{ vars.DOCKERHUB_REPO || 'aykutmursalo' }}" >> $GITHUB_ENV
@@ -85,7 +84,7 @@ jobs:
         echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
         echo "RELEASE_VERSION=${{ steps.semanticrelease.outputs.release-version || '1.0.0' }}" >> $GITHUB_ENV
 
-        # =============  BUILD & PUSH  =============
+    # =============  BUILD & PUSH  =============
     - name: Build and push the fast-fp8 image
       if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: docker/bake-action@v2
@@ -98,12 +97,3 @@ jobs:
           fast-fp8.args.DOCKERHUB_IMG=${{ env.DOCKERHUB_IMG }}
           fast-fp8.args.RELEASE_VERSION=${{ env.RELEASE_VERSION }}
           fast-fp8.args.HUGGINGFACE_ACCESS_TOKEN=${{ env.HUGGINGFACE_ACCESS_TOKEN }}
-
-    # =============  DOCKER HUB DESCRIPTION  =============
-    - name: Update description on Docker Hub
-      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
-      uses: peter-evans/dockerhub-description@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-        repository: ${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}
