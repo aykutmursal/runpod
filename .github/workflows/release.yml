@@ -85,7 +85,7 @@ jobs:
         echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
         echo "RELEASE_VERSION=${{ steps.semanticrelease.outputs.release-version || '1.0.0' }}" >> $GITHUB_ENV
 
-    # =============  BUILD & PUSH  =============
+        # =============  BUILD & PUSH  =============
     - name: Build and push the fast-fp8 image
       if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: docker/bake-action@v2
@@ -93,9 +93,7 @@ jobs:
         push: true
         targets: "fast-fp8"
         set: |
-          # ---- tag ----
           fast-fp8.tags=${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}:${{ env.RELEASE_VERSION }}-fast-fp8
-          # ---- build-arg’lar ----
           fast-fp8.args.DOCKERHUB_REPO=${{ env.DOCKERHUB_REPO }}
           fast-fp8.args.DOCKERHUB_IMG=${{ env.DOCKERHUB_IMG }}
           fast-fp8.args.RELEASE_VERSION=${{ env.RELEASE_VERSION }}
