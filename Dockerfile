@@ -30,22 +30,28 @@ RUN chmod +x /start.sh /restore_snapshot.sh
 RUN --mount=type=cache,target=/tmp/wget-cache \
     mkdir -p /comfyui/models/{diffusion_models,text_encoders,vae} && \
     \
-    # ── Diffusion model (dev-fp8) ───────────────────────────────────────────────
-    wget -q -O /comfyui/models/diffusion_models/hidream_i1_dev_fp8.safetensors \
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_fp8.safetensors" && \
-    \
-    # ── Text encoders ──────────────────────────────────────────────────────────
-    wget -q -O /comfyui/models/text_encoders/clip_l_hidream.safetensors \
+   # ---------- Dev-fp8 diffusion model ----------
+RUN --mount=type=cache,target=/tmp/wget-cache \
+    mkdir -p /comfyui/models/diffusion_models && \
+    wget --continue --retry-connrefused --waitretry=5 -t 5 -O /comfyui/models/diffusion_models/hidream_i1_dev_fp8.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_fp8.safetensors"
+
+# ---------- Text encoders ----------
+RUN --mount=type=cache,target=/tmp/wget-cache \
+    mkdir -p /comfyui/models/text_encoders && \
+    wget --continue --retry-connrefused --waitretry=5 -t 5 -O /comfyui/models/text_encoders/clip_l_hidream.safetensors \
       "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_l_hidream.safetensors" && \
-    wget -q -O /comfyui/models/text_encoders/clip_g_hidream.safetensors \
+    wget --continue --retry-connrefused --waitretry=5 -t 5 -O /comfyui/models/text_encoders/clip_g_hidream.safetensors \
       "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors" && \
-    wget -q -O /comfyui/models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors \
+    wget --continue --retry-connrefused --waitretry=5 -t 5 -O /comfyui/models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors \
       "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors" && \
-    wget -q -O /comfyui/models/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors \
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors" && \
-    \
-    # ── VAE ────────────────────────────────────────────────────────────────────
-    wget -q -O /comfyui/models/vae/ae.safetensors \
+    wget --continue --retry-connrefused --waitretry=5 -t 5 -O /comfyui/models/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors"
+
+# ---------- VAE ----------
+RUN --mount=type=cache,target=/tmp/wget-cache \
+    mkdir -p /comfyui/models/vae && \
+    wget --continue --retry-connrefused --waitretry=5 -t 5 -O /comfyui/models/vae/ae.safetensors \
       "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
 
 # ---------- Default model type ----------
