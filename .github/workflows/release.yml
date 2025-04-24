@@ -4,16 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       model_type:
-        description: 'Which model to build & push (fast-fp8, fast-bf16, dev-fp8, dev-bf16)'
+        description: 'Which model to build & push'
         required: true
         default: 'fast-fp8'
         type: choice
         options:
-          - fast-fp8
-          - fast-bf16
-          - dev-fp8
-          - dev-bf16
-
+          - fast-fp8       # Tek model tutuyoruz
   push:
     branches:
       - main
@@ -21,8 +17,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # push tetikliyse ama commit mesajı semantic-release çıktısı değilse çalış
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release)')) }}
+
     permissions:
       contents: write
       packages: write
@@ -30,82 +25,90 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
+    # =============  SETUP  =============
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+    - name: Install dependencies
+      run: python -m pip install -r requirements.txt
 
-      - name: Clear space to remove unused folders
-        run: |
-          rm -rf /usr/share/dotnet
-          rm -rf /opt/ghc
-          rm -rf "/usr/local/share/boost"
-          rm -rf "$AGENT_TOOLSDIRECTORY"
+    - name: Clear space to remove unused folders
+      run: |
+        rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
 
-      - name: Update the ToC in the README.md
-        run: npx markdown-toc README.md -i
+    # README dosyan varsa TOC güncelle; yoksa atla
+    - name: Update the ToC in the README.md
+      if: hashFiles('README.md') != ''
+      run: npx markdown-toc README.md -i
 
-      - name: Semantic release
-        uses: codfish/semantic-release-action@v3
-        id: semanticrelease
-        with:
-          additional-packages: |
-            ['@semantic-release/git', '@semantic-release/changelog', '@semantic-release/exec']
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # =============  SEMANTIC-RELEASE (yalnızca push)  =============
+    - name: Semantic release
+      if: github.event_name == 'push'
+      uses: codfish/semantic-release-action@v3
+      id: semanticrelease
+      with:
+        additional-packages: |
+          ['@semantic-release/git', '@semantic-release/changelog', '@semantic-release/exec']
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set environment variables
-        if: steps.semanticrelease.outputs.new-release-published == 'true'
-        run: |
-          echo "DOCKERHUB_REPO=${{ vars.DOCKERHUB_REPO }}" >> $GITHUB_ENV
-          echo "DOCKERHUB_IMG=${{ vars.DOCKERHUB_IMG }}" >> $GITHUB_ENV
-          echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=${{ steps.semanticrelease.outputs.release-version }}" >> $GITHUB_ENV
+    # =============  ENV VARS =============
+    - name: Set environment variables
+      # semantic-release yeni sürüm ürettiyse veya workflow_dispatch'taysak
+      if: github.event_name == 'workflow_dispatch' || steps.semanticrelease.outputs.new-release-published == 'true'
+      run: |
+        echo "DOCKERHUB_REPO=${{ vars.DOCKERHUB_REPO || 'aykutmursalo' }}" >> $GITHUB_ENV
+        echo "DOCKERHUB_IMG=${{ vars.DOCKERHUB_IMG || 'hidream-inference-fast-fp8' }}" >> $GITHUB_ENV
+        echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
+        # push tetikliyse semantic-release çıktısını alır; dispatch'te sabit '1.0.0'
+        echo "RELEASE_VERSION=${{ steps.semanticrelease.outputs.release-version || '1.0.0' }}" >> $GITHUB_ENV
 
-      - name: Build and push the images to Docker Hub
-        if: steps.semanticrelease.outputs.new-release-published == 'true'
-        uses: docker/bake-action@v2
-        with:
-          push: true
-          # YAML parser hatasını önlemek için TAM İFADE string olarak verildi
-          targets: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.model_type || 'fast-fp8,fast-bf16,dev-fp8,dev-bf16' }}"
-          cache-from: type=registry,ref=${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}:cache
-          cache-to:   type=registry,ref=${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}:cache,mode=max
-          set: |
-            *.args.DOCKERHUB_REPO=${{ env.DOCKERHUB_REPO }}
-            *.args.DOCKERHUB_IMG=${{ env.DOCKERHUB_IMG }}
-            *.args.RELEASE_VERSION=${{ env.RELEASE_VERSION }}
-            *.args.HUGGINGFACE_ACCESS_TOKEN=${{ env.HUGGINGFACE_ACCESS_TOKEN }}
+    # =============  BUILD & PUSH  =============
+    - name: Build and push the fast-fp8 image
+      if: github.event_name == 'workflow_dispatch' || steps.semanticrelease.outputs.new-release-published == 'true'
+      uses: docker/bake-action@v2
+      with:
+        push: true
+        # Sadece fast-fp8 hedefini derle
+        targets: "fast-fp8"
+        set: |
+          # ---- tag ----
+          fast-fp8.tags=${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}:${{ env.RELEASE_VERSION }}-fast-fp8
+          # ---- build-time arg'lar ----
+          fast-fp8.args.DOCKERHUB_REPO=${{ env.DOCKERHUB_REPO }}
+          fast-fp8.args.DOCKERHUB_IMG=${{ env.DOCKERHUB_IMG }}
+          fast-fp8.args.RELEASE_VERSION=${{ env.RELEASE_VERSION }}
+          fast-fp8.args.HUGGINGFACE_ACCESS_TOKEN=${{ env.HUGGINGFACE_ACCESS_TOKEN }}
 
-      - name: Update description on Docker Hub
-        if: steps.semanticrelease.outputs.new-release-published == 'true'
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}
+    # =============  DOCKER HUB DESCRIPTION  =============
+    - name: Update description on Docker Hub
+      if: github.event_name == 'workflow_dispatch' || steps.semanticrelease.outputs.new-release-published == 'true'
+      uses: peter-evans/dockerhub-description@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        repository: ${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}
