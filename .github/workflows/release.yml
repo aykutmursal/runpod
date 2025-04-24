@@ -77,15 +77,15 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # =============  ENV VARS =============
-    - name: Set environment variables
-      # semantic-release yeni sürüm ürettiyse veya workflow_dispatch'taysak
-      if: github.event_name == 'workflow_dispatch' || steps.semanticrelease.outputs.new-release-published == 'true'
-      run: |
-        echo "DOCKERHUB_REPO=${{ vars.DOCKERHUB_REPO || 'aykutmursalo' }}" >> $GITHUB_ENV
-        echo "DOCKERHUB_IMG=${{ vars.DOCKERHUB_IMG || 'hidream-inference-fast-fp8' }}" >> $GITHUB_ENV
-        echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
-        # push tetikliyse semantic-release çıktısını alır; dispatch'te sabit '1.0.0'
-        echo "RELEASE_VERSION=${{ steps.semanticrelease.outputs.release-version || '1.0.0' }}" >> $GITHUB_ENV
+    # =============  ENV VARS =============
+- name: Set environment variables
+  if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+  run: |
+    echo "DOCKERHUB_REPO=${{ vars.DOCKERHUB_REPO || 'aykutmursalo' }}" >> $GITHUB_ENV
+    echo "DOCKERHUB_IMG=${{ vars.DOCKERHUB_IMG || 'hidream-inference-fast-fp8' }}" >> $GITHUB_ENV
+    echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
+    echo "RELEASE_VERSION=${{ steps.semanticrelease.outputs.release-version || '1.0.0' }}" >> $GITHUB_ENV
+
 
     # =============  BUILD & PUSH  =============
     - name: Build and push the fast-fp8 image
