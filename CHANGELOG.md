@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/aykutmursal/hidream-inference-fast-fp8/compare/1.0.0...1.1.0) (2025-04-24)
+
+
+### Features
+
+* download diffusion model at runtime ([29bfca1](https://github.com/aykutmursal/hidream-inference-fast-fp8/commit/29bfca103968fa291892ccbba2f5f28b89250996))
+
 # 1.0.0 (2025-04-24)
 
 
