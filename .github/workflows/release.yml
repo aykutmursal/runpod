@@ -93,7 +93,7 @@ jobs:
         with:
           push: true
           # YAML parser hatasını önlemek için TAM İFADE string olarak verildi
-          targets: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.model_type != '' ? github.event.inputs.model_type : 'fast-fp8,fast-bf16,dev-fp8,dev-bf16' }}"
+          targets: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.model_type || 'fast-fp8,fast-bf16,dev-fp8,dev-bf16' }}"
           cache-from: type=registry,ref=${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}:cache
           cache-to:   type=registry,ref=${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}:cache,mode=max
           set: |
