@@ -29,24 +29,24 @@ RUN chmod +x /start.sh /restore_snapshot.sh
 # ---------- Download required weights (ONLY dev-fp8 + encoders + vae) ----------
 RUN --mount=type=cache,target=/tmp/wget-cache \
     mkdir -p /comfyui/models/{diffusion_models,text_encoders,vae} && \
-    : \
-  # ── Diffusion model (dev-fp8) ──────────────────────────────────────────────── \
-    && wget -q -O /comfyui/models/diffusion_models/hidream_i1_dev_fp8.safetensors \
-         "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_fp8.safetensors" && \
-    : \
-  # ── Text-encoders ──────────────────────────────────────────────────────────── \
-    && wget -q -O /comfyui/models/text_encoders/clip_l_hidream.safetensors \
-         "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_l_hidream.safetensors" && \
+    \
+    # ── Diffusion model (dev-fp8) ───────────────────────────────────────────────
+    wget -q -O /comfyui/models/diffusion_models/hidream_i1_dev_fp8.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_fp8.safetensors" && \
+    \
+    # ── Text encoders ──────────────────────────────────────────────────────────
+    wget -q -O /comfyui/models/text_encoders/clip_l_hidream.safetensors \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_l_hidream.safetensors" && \
     wget -q -O /comfyui/models/text_encoders/clip_g_hidream.safetensors \
-         "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors" && \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors" && \
     wget -q -O /comfyui/models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors \
-         "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors" && \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors" && \
     wget -q -O /comfyui/models/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors \
-         "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors" && \
-    : \
-  # ── VAE ───────────────────────────────────────────────────────────────────── \
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors" && \
+    \
+    # ── VAE ────────────────────────────────────────────────────────────────────
     wget -q -O /comfyui/models/vae/ae.safetensors \
-         "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
 
 # ---------- Default model type ----------
 ENV MODEL_TYPE=dev-fp8   
