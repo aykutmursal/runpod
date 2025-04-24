@@ -9,10 +9,9 @@ on:
         default: 'fast-fp8'
         type: choice
         options:
-          - fast-fp8       # Tek model tutuyoruz
+          - fast-fp8
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   release:
@@ -60,12 +59,12 @@ jobs:
       with:
         node-version: '16'
 
-    # README dosyan varsa TOC güncelle; yoksa atla
+    # README varsa TOC güncelle; yoksa atla
     - name: Update the ToC in the README.md
       if: hashFiles('README.md') != ''
       run: npx markdown-toc README.md -i
 
-    # =============  SEMANTIC-RELEASE (yalnızca push)  =============
+    # =============  SEMANTIC-RELEASE  (yalnız push) =============
     - name: Semantic release
       if: github.event_name == 'push'
       uses: codfish/semantic-release-action@v3
@@ -77,15 +76,14 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # =============  ENV VARS =============
-    # =============  ENV VARS =============
-- name: Set environment variables
-  if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
-  run: |
-    echo "DOCKERHUB_REPO=${{ vars.DOCKERHUB_REPO || 'aykutmursalo' }}" >> $GITHUB_ENV
-    echo "DOCKERHUB_IMG=${{ vars.DOCKERHUB_IMG || 'hidream-inference-fast-fp8' }}" >> $GITHUB_ENV
-    echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
-    echo "RELEASE_VERSION=${{ steps.semanticrelease.outputs.release-version || '1.0.0' }}" >> $GITHUB_ENV
-
+    - name: Set environment variables
+      # Her push veya workflow_dispatch’ta çalış
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+      run: |
+        echo "DOCKERHUB_REPO=${{ vars.DOCKERHUB_REPO || 'aykutmursalo' }}" >> $GITHUB_ENV
+        echo "DOCKERHUB_IMG=${{ vars.DOCKERHUB_IMG || 'hidream-inference-fast-fp8' }}" >> $GITHUB_ENV
+        echo "HUGGINGFACE_ACCESS_TOKEN=${{ secrets.HUGGINGFACE_ACCESS_TOKEN }}" >> $GITHUB_ENV
+        echo "RELEASE_VERSION=${{ steps.semanticrelease.outputs.release-version || '1.0.0' }}" >> $GITHUB_ENV
 
     # =============  BUILD & PUSH  =============
     - name: Build and push the fast-fp8 image
@@ -93,11 +91,11 @@ jobs:
       uses: docker/bake-action@v2
       with:
         push: true
-        targets: "fast-fp8"                    # sadece fast-fp8
+        targets: "fast-fp8"
         set: |
           # ---- tag ----
           fast-fp8.tags=${{ env.DOCKERHUB_REPO }}/${{ env.DOCKERHUB_IMG }}:${{ env.RELEASE_VERSION }}-fast-fp8
-          # ---- build-time arg'lar ----
+          # ---- build-arg’lar ----
           fast-fp8.args.DOCKERHUB_REPO=${{ env.DOCKERHUB_REPO }}
           fast-fp8.args.DOCKERHUB_IMG=${{ env.DOCKERHUB_IMG }}
           fast-fp8.args.RELEASE_VERSION=${{ env.RELEASE_VERSION }}
@@ -105,7 +103,7 @@ jobs:
 
     # =============  DOCKER HUB DESCRIPTION  =============
     - name: Update description on Docker Hub
-      if: github.event_name == 'workflow_dispatch' || steps.semanticrelease.outputs.new-release-published == 'true'
+      if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: peter-evans/dockerhub-description@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
