@@ -26,10 +26,6 @@ WORKDIR /
 ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py test_input.json /
 RUN chmod +x /start.sh /restore_snapshot.sh
 
-# ---------- Download required weights (ONLY dev-fp8 + encoders + vae) ----------
-RUN --mount=type=cache,target=/tmp/wget-cache \
-    mkdir -p /comfyui/models/{diffusion_models,text_encoders,vae} && \
-    \
 ###############################################################################
 # Diffusion model (dev-fp8)
 ###############################################################################
@@ -67,8 +63,7 @@ RUN --mount=type=cache,target=/tmp/wget-cache \
       "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
 
 # ---------- Default model type ----------
-ENV MODEL_TYPE=dev-fp8   
-# build-time default
+ENV MODEL_TYPE=dev-fp8   # build-time default
 
 ########################  Stage 1: final  ########################
 FROM base AS final
