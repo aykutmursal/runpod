@@ -89,7 +89,7 @@ jobs:
 
     # =============  BUILD & PUSH  =============
     - name: Build and push the fast-fp8 image
-      if: github.event_name == 'workflow_dispatch' || steps.semanticrelease.outputs.new-release-published == 'true'
+       if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       uses: docker/bake-action@v2
       with:
         push: true
