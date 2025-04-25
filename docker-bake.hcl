@@ -11,7 +11,7 @@ variable "RELEASE_VERSION" {
 }
 
 group "default" {
-  targets = ["base", "fast-fp8", "fast-bf16", "dev-fp8", "dev-bf16"]
+  targets = ["base", "fast-fp8", "fast-bf16", "dev-fp8", "dev_bf16"]
 }
 
 target "base" {
@@ -59,13 +59,13 @@ target "dev-fp8" {
 }
 
 # dev-bf16 modeli
-target "dev-bf16" {
+target "dev_bf16" {
   context    = "."
   dockerfile = "Dockerfile"
   target     = "final"
   inherits   = ["base"]
   args = {
-    MODEL_TYPE = "dev-bf16"
+    MODEL_TYPE = "dev_bf16"
   }
-  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}-dev-bf16"]
+  tags = ["${DOCKERHUB_REPO}/${DOCKERHUB_IMG}:${RELEASE_VERSION}_dev_bf16"]
 }

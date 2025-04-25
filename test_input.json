@@ -1,4 +1,6 @@
-{
+ {
+  "input": {
+    "workflow": {
   "3": {
     "inputs": {
       "seed": 147638433643733,
@@ -118,7 +120,7 @@
   },
   "69": {
     "inputs": {
-      "unet_name": "hidream_i1_dev_bf16.safetensors",
+      "unet_name": "hidream_i1_dev_fp8.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
@@ -139,4 +141,6 @@
       "title": "ModelSamplingSD3"
     }
   }
+}
+}
 }

@@ -4,8 +4,8 @@ set -e
 ###############################################################################
 # 1)   MODELE ÖN-KOŞUL KONTROLÜ
 ###############################################################################
-# Tek desteklenen model → dev-fp8
-MODEL_TYPE="${MODEL_TYPE:-dev-fp8}"
+# Tek desteklenen model → dev_bf16
+MODEL_TYPE="${MODEL_TYPE:-dev_bf16}"
 MODEL_PATH="/comfyui/models/diffusion_models/hidream_i1_${MODEL_TYPE}.safetensors"
 
 echo "Selected MODEL_TYPE=${MODEL_TYPE}"

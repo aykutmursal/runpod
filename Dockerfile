@@ -22,13 +22,13 @@ ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py test_input.json /
 RUN chmod +x /start.sh /restore_snapshot.sh
 
 ###############################################################################
-# Diffusion model (dev-fp8)
+# Diffusion model (dev_bf16)
 ###############################################################################
 RUN --mount=type=cache,target=/tmp/wget-cache \
     mkdir -p /comfyui/models/diffusion_models && \
     wget --continue --retry-connrefused --waitretry=5 -t 5 \
-      -O /comfyui/models/diffusion_models/hidream_i1_dev_fp8.safetensors \
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_fp8.safetensors"
+      -O /comfyui/models/diffusion_models/hidream_i1_dev_bf16.safetensors\
+      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_bf16.safetensors"
 
 ###############################################################################
 # Text encoders
