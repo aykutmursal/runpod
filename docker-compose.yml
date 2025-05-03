@@ -1,6 +1,6 @@
 services:
   comfyui-worker:
-    image: aykutmursalo/hidream-inference:latest
+    image: aykutmursalo/fffa:latest
     deploy:
       resources:
         reservations:

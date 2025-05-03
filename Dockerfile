@@ -24,38 +24,91 @@ RUN chmod +x /start.sh /restore_snapshot.sh
 ###############################################################################
 # Diffusion model (dev_bf16)
 ###############################################################################
-RUN --mount=type=cache,target=/tmp/wget-cache \
-    mkdir -p /comfyui/models/diffusion_models && \
-    wget --continue --retry-connrefused --waitretry=5 -t 5 \
-      -O /comfyui/models/diffusion_models/hidream_i1_dev_bf16.safetensors\
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/diffusion_models/hidream_i1_dev_bf16.safetensors"
+ARG HF_TOKEN
+ARG CIVI_TOKEN
+
+# --- Civitai modeli (özellikle önemli olanı önce indirelim) ---
+RUN mkdir -p /comfyui/models/diffusion_models /comfyui/models/checkpoints && \
+    echo "Downloading fluxFillFP8_v10.safetensors from Civitai..." && \
+    curl -L --fail --retry 5 --retry-delay 5 \
+      -H "Authorization: Bearer ${CIVI_TOKEN}" \
+      -o /comfyui/models/diffusion_models/fluxFillFP8_v10.safetensors \
+      "https://civitai.com/api/download/models/1085456?type=Model&format=SafeTensor&size=full&fp=fp8" && \
+    [ -f "/comfyui/models/diffusion_models/fluxFillFP8_v10.safetensors" ] && \
+    echo "Successfully downloaded fluxFillFP8_v10.safetensors" && \
+    echo "Downloading flux1-dev-fp8.safetensors from HuggingFace..." && \
+    wget -c --retry-connrefused --waitretry=5 -t 5 \
+      --header="Authorization: Bearer ${HF_TOKEN}" \
+      -O /comfyui/models/checkpoints/flux1-dev-fp8.safetensors \
+      "https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/flux1-dev-fp8.safetensors?download=true" && \
+    [ -f "/comfyui/models/checkpoints/flux1-dev-fp8.safetensors" ] && \
+    echo "Successfully downloaded flux1-dev-fp8.safetensors"
 
 ###############################################################################
 # Text encoders
 ###############################################################################
 RUN --mount=type=cache,target=/tmp/wget-cache \
-    mkdir -p /comfyui/models/text_encoders && \
-    wget --continue --retry-connrefused --waitretry=5 -t 5 \
-      -O /comfyui/models/text_encoders/clip_l_hidream.safetensors \
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_l_hidream.safetensors" && \
-    wget --continue --retry-connrefused --waitretry=5 -t 5 \
-      -O /comfyui/models/text_encoders/clip_g_hidream.safetensors \
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/clip_g_hidream.safetensors" && \
-    wget --continue --retry-connrefused --waitretry=5 -t 5 \
-      -O /comfyui/models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors \
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors" && \
-    wget --continue --retry-connrefused --waitretry=5 -t 5 \
-      -O /comfyui/models/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors \
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/text_encoders/llama_3.1_8b_instruct_fp8_scaled.safetensors"
+    wget -c --retry-connrefused --waitretry=5 -t 5 \
+      --header="Authorization: Bearer ${HF_TOKEN}" \
+      -O /comfyui/models/text_encoders/clip_l.safetensors \
+      "https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/resolve/main/text_encoders/clip_l.safetensors?download=true" && \
+    wget -c --retry-connrefused --waitretry=5 -t 5 \
+      --header="Authorization: Bearer ${HF_TOKEN}" \
+      -O /comfyui/models/text_encoders/t5xxl_fp8_e4m3fn.safetensors \
+      "https://huggingface.co/Comfy-Org/stable-diffusion-3.5-fp8/resolve/main/text_encoders/t5xxl_fp8_e4m3fn.safetensors?download=true"
 
 ###############################################################################
 # VAE
 ###############################################################################
 RUN --mount=type=cache,target=/tmp/wget-cache \
-    mkdir -p /comfyui/models/vae && \
-    wget --continue --retry-connrefused --waitretry=5 -t 5 \
+    mkdir -p /comfyui/models/vae/FLUX1 && \
+    wget -c --retry-connrefused --waitretry=5 -t 5 \
+      --header="Authorization: Bearer ${HF_TOKEN}" \
       -O /comfyui/models/vae/ae.safetensors \
-      "https://huggingface.co/Comfy-Org/HiDream-I1_ComfyUI/resolve/main/split_files/vae/ae.safetensors"
+      "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors?download=true"
+
+###############################################################################
+# Custom nodes (her biri ayrı katmanda)
+###############################################################################
+# --- Custom nodes (impact-pack) ---
+RUN mkdir -p /comfyui/custom_nodes && cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Impact-Pack comfyui-impact-pack && \
+    pip install --no-cache-dir -r comfyui-impact-pack/requirements.txt
+
+# --- Custom nodes (rgthree) ---
+RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/rgthree/rgthree-comfy.git
+
+# --- Custom nodes (KJNodes) ---
+RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git && \
+    pip install --no-cache-dir -r ComfyUI-KJNodes/requirements.txt
+
+# --- Custom nodes (Florence2) ---
+RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/kijai/ComfyUI-Florence2.git && \
+    pip install --no-cache-dir -r ComfyUI-Florence2/requirements.txt
+
+# --- Custom nodes (MixLab) ---
+RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/shadowcz007/comfyui-mixlab-nodes.git && \
+    pip install --no-cache-dir -r comfyui-mixlab-nodes/requirements.txt
+
+# --- Custom nodes (essentials) ---
+RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/cubiq/ComfyUI_essentials.git
+
+# --- Custom nodes (TeaCache) ---
+RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/welltop-cn/ComfyUI-TeaCache.git && \
+    pip install --no-cache-dir -r ComfyUI-TeaCache/requirements.txt
+
+# --- Custom nodes (Inpaint-CropAndStitch and LogicUtils) ---
+RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch.git && \
+    git clone --depth 1 https://github.com/aria1th/ComfyUI-LogicUtils.git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 
 # ---------- Default model ----------
 # build-time default

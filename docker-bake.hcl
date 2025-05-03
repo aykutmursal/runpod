@@ -3,7 +3,7 @@ variable "DOCKERHUB_REPO" {
 }
 
 variable "DOCKERHUB_IMG" {
-  default = "hidream-inference"
+  default = "fffa"
 }
 
 variable "RELEASE_VERSION" {

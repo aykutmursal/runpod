@@ -4,14 +4,25 @@ set -e
 ###############################################################################
 # 1)   MODELE ÖN-KOŞUL KONTROLÜ
 ###############################################################################
-# Tek desteklenen model → dev_bf16
-MODEL_TYPE="${MODEL_TYPE:-dev_bf16}"
-MODEL_PATH="/comfyui/models/diffusion_models/hidream_i1_${MODEL_TYPE}.safetensors"
+MODEL_PATHS=(
+  "/comfyui/models/diffusion_models/fluxFillFP8_v10.safetensors"
+  "/comfyui/models/checkpoints/flux1-dev-fp8.safetensors"
+)
 
-echo "Selected MODEL_TYPE=${MODEL_TYPE}"
+# Check if at least one of the models exists
+MODEL_FOUND=false
+for MODEL_PATH in "${MODEL_PATHS[@]}"; do
+  if [[ -f "$MODEL_PATH" ]]; then
+    MODEL_FOUND=true
+    echo "✅ Found model: $MODEL_PATH"
+  else
+    echo "⚠️ Model not found: $MODEL_PATH"
+  fi
+done
 
-if [[ ! -f "$MODEL_PATH" ]]; then
-  echo "❌ Model file '$MODEL_PATH' not found! Docker imajına dahil edilmemiş."
+# Exit if no models are found
+if [[ "$MODEL_FOUND" != "true" ]]; then
+  echo "❌ No valid models found! Docker imajına dahil edilmemiş."
   exit 1
 fi
 
