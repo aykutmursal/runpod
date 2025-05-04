@@ -35,12 +35,29 @@ TCMALLOC="$(ldconfig -p | grep -Po 'libtcmalloc.so.\d' | head -n 1 || true)"
 ###############################################################################
 # 3)   COMFYUI + RUNPOD HANDLER BAŞLAT
 ###############################################################################
+# Start ComfyUI
 python3 /comfyui/main.py --disable-auto-launch --disable-metadata --listen &
-echo "✅ ComfyUI running on :8188"
+COMFY_PID=$!
+echo "✅ ComfyUI starting on :8188"
 
+# Wait for ComfyUI to be ready
+echo "Waiting for ComfyUI to be available..."
+for i in {1..60}; do
+    if curl -s http://127.0.0.1:8188 > /dev/null; then
+        echo "✅ ComfyUI is now available!"
+        break
+    fi
+    sleep 2
+    echo "Waiting for ComfyUI... ($i/60)"
+done
+
+# Start RunPod handler only after ComfyUI is ready
 if [[ "$SERVE_API_LOCALLY" == "true" ]]; then
-  echo "🔌 Starting RunPod Handler (local API)"
-  python3 -u /rp_handler.py --rp_serve_api --rp_api_host=0.0.0.0
+    echo "🔌 Starting RunPod Handler (local API)"
+    python3 -u /rp_handler.py --rp_serve_api --rp_api_host=0.0.0.0
 else
-  python3 -u /rp_handler.py
+    python3 -u /rp_handler.py
 fi
+
+# Wait for the ComfyUI process
+wait $COMFY_PID

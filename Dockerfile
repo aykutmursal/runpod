@@ -68,47 +68,24 @@ RUN --mount=type=cache,target=/tmp/wget-cache \
       "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors?download=true"
 
 ###############################################################################
-# Custom nodes (her biri ayrı katmanda)
+# Custom nodes 
 ###############################################################################
-# --- Custom nodes (impact-pack) ---
+COPY requirements.txt /requirements.txt
+RUN pip install --no-cache-dir -r /requirements.txt
+
+# Clone all custom nodes WITHOUT installing their requirements
 RUN mkdir -p /comfyui/custom_nodes && cd /comfyui/custom_nodes && \
-    git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Impact-Pack comfyui-impact-pack && \
-    pip install --no-cache-dir -r comfyui-impact-pack/requirements.txt
-
-# --- Custom nodes (rgthree) ---
-RUN cd /comfyui/custom_nodes && \
-    git clone --depth 1 https://github.com/rgthree/rgthree-comfy.git
-
-# --- Custom nodes (KJNodes) ---
-RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Impact-Pack.git && \
+    git clone --depth 1 https://github.com/rgthree/rgthree-comfy.git && \
     git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git && \
-    pip install --no-cache-dir -r ComfyUI-KJNodes/requirements.txt
-
-# --- Custom nodes (Florence2) ---
-RUN cd /comfyui/custom_nodes && \
     git clone --depth 1 https://github.com/kijai/ComfyUI-Florence2.git && \
-    pip install --no-cache-dir -r ComfyUI-Florence2/requirements.txt
-
-# --- Custom nodes (MixLab) ---
-RUN cd /comfyui/custom_nodes && \
-    git clone --depth 1 https://github.com/shadowcz007/comfyui-mixlab-nodes.git && \
-    pip install --no-cache-dir -r comfyui-mixlab-nodes/requirements.txt
-
-# --- Custom nodes (essentials) ---
-RUN cd /comfyui/custom_nodes && \
-    git clone --depth 1 https://github.com/cubiq/ComfyUI_essentials.git
-
-# --- Custom nodes (TeaCache) ---
-RUN cd /comfyui/custom_nodes && \
+    git clone --depth 1 https://github.com/cubiq/ComfyUI_essentials.git && \
     git clone --depth 1 https://github.com/welltop-cn/ComfyUI-TeaCache.git && \
-    pip install --no-cache-dir -r ComfyUI-TeaCache/requirements.txt
-
-# --- Custom nodes (Inpaint-CropAndStitch and LogicUtils) ---
-RUN cd /comfyui/custom_nodes && \
     git clone --depth 1 https://github.com/lquesada/ComfyUI-Inpaint-CropAndStitch.git && \
-    git clone --depth 1 https://github.com/aria1th/ComfyUI-LogicUtils.git && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    git clone --depth 1 https://github.com/aria1th/ComfyUI-LogicUtils.git
 
+# Force reinstall of potentially conflicting packages
+RUN pip install --no-cache-dir --force-reinstall opencv-python-headless
 
 # ---------- Default model ----------
 # build-time default
